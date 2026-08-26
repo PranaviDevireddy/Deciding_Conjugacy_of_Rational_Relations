@@ -8,12 +8,6 @@ data Item = T Tree | Result (String,String) | Op String
     deriving Show
 
 
-splitAtComma :: String -> (String,String)
-splitAtComma s =
-    let x = takeWhile (/= ',') s
-        y = tail (dropWhile (/= ',') s)
-    in (x,y)
-
 
 parsing :: String -> (String,[String])
 parsing line = 
@@ -31,6 +25,13 @@ get_rule symbol ((lhs,rhs):xs) =
     if lhs == symbol
     then rhs
     else get_rule symbol xs
+
+
+split :: String -> (String,String)
+split s =
+    let x = takeWhile (/= ',') s
+        y = tail (dropWhile (/= ',') s)
+    in (x,y)
 
 
 create_tree :: String -> [(String,[String])] -> Tree
@@ -51,7 +52,7 @@ create_tree symbol grammar =
         else
             let value = head rhs
                 inside = init (tail value)
-                parts = splitAtComma inside
+                parts = split inside
             in
                 Tuple (fst parts, snd parts)
 
