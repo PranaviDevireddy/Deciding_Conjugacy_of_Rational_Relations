@@ -1,7 +1,7 @@
 data List_item = Tup (String,String) | K   (String,String)
     deriving Show
 
-data Stack_item = Part List_item | Res (String,String)
+data Stack_item = Part List_item | Res (String,String) | Com_wit String
     deriving Show
 
 
@@ -55,10 +55,13 @@ common_witness [Res (x,y)] = do
 common_witness (Part (Tup (x0,y0)) : Part (K (u,v)) : Part (Tup (x1,y1)) : xs ) =
     let x = x1 ++ x0
         y = y1 ++ y0
-        inner_witness = witness (primitive_root (length u) (u,v))
+        (p_u,p_v) = (primitive_root (length u) (u,v))
+        inner_witness = witness (p_u,p_v)
+        (p_x,p_y) = primitive_root (length x) (x,y)
     in
-        if iswit inner_witness (x,y)
-        then common_witness (Res (x,y) : xs)
+        if (p_u == p_x) && (p_v == p_y) then common_witness (Res (p_x,p_y) : xs) 
+        else if iswit inner_witness (x,y)
+        then common_witness (Res (x,y) : xs) 
         else do
             putStrLn "False"
             return False
