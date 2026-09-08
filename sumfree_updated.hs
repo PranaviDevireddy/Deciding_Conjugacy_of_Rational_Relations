@@ -1,7 +1,7 @@
 
 data E_item = KS (String,String) 
 
-data Stack_item = T (String,String) | Exp E_item | WS (String,String)
+data Stack_item = T (String,String) | Exp E_item | WS (String,String) | WSU String
 
 cut :: (String,String) -> Maybe (String,String)
 cut (x,y) =  if length x /= length y then Nothing 
@@ -51,25 +51,47 @@ witness ((u,v)) =
 
 common_witness :: [Stack_item] -> Maybe String
 
-common_witness [WS w1, T (u,v)] = if iswit (fst w1) (u,v) || iswit (fst w1) (v,u)
-                                  then Just (fst w1)
-                                  else Nothing
+common_witness [WS w1, T (u,v)] = case witness w1 of
+                                    Nothing -> Nothing
+                                    Just z  -> if iswit z (u,v) || iswit z (v,u)
+                                            then Just z
+                                            else Nothing
+
+common_witness [WSU x, T (u,v)] = if iswit x (u,v) || iswit x (v,u)
+                                        then Just x
+                                        else Nothing
+
+common_witness (WSU x : T (u1,v1) : Exp (KS (u2,v2)) : T (u3,v3) : xs) =
+    let prim_expr  = primitive_root 1 (u2,v2)
+        redux      = (u3++u1, v3++v1)
+        prim_redux = primitive_root 1 redux
+    in
+    if prim_redux == prim_expr then
+        if iswit x prim_redux then common_witness (WSU x : T redux : xs)
+        else Nothing
+    else
+        case witness (u2,v2) of
+            Nothing -> Nothing
+            Just y  ->
+                if x == y && iswit x redux then common_witness (WSU x : T redux : xs)
+                else Nothing
+
 
 common_witness (WS w1 : T (u1,v1) : Exp (KS (u2,v2)) : T (u3,v3) : xs ) = 
         let prim_expr = primitive_root 1 (u2,v2)
             redux = (u3++u1, v3++v1)
             prim_redux = primitive_root 1 redux
-            prim_natural = primitive_root 1 (u1++u3,v1++v3)
+            
         in
         if prim_redux == prim_expr then 
-            if w1 == prim_redux then common_witness (WS prim_natural : T (u1++u3,v1++v3) : xs) 
+            if w1 == prim_redux then common_witness (WS prim_redux : T redux : xs) 
             else Nothing
         else   
             case (witness (u2,v2)) of
                 Nothing -> Nothing
-                Just x  ->  let w_new = (u1 ++ x,v1) 
+                Just x  ->  let w_new_bool = iswit x w1
                             in
-                            if (iswit x redux) then common_witness (WS w_new : T (u1++u3,v1++v3) : xs)
+                            if (iswit x redux && w_new_bool) then common_witness (WSU x : T redux : xs)
                             else Nothing
                         
 
@@ -79,17 +101,17 @@ common_witness (T (u1,v1) : Exp (KS (u2,v2)) : T (u3,v3) : xs ) =
         redux = (u3++u1, v3++v1)
         prim_redux = primitive_root 1 redux
     in
-    if prim_redux == prim_expr then common_witness ( WS prim_redux : T (u1++u3,v1++v3) : xs)
+    if prim_redux == prim_expr then common_witness ( WS prim_redux : T redux : xs)
     else   
         case (witness (u2,v2)) of
             Nothing -> Nothing
             Just x -> if iswit x redux then 
-                common_witness (WS (x, drop (length x) u1) : T redux : xs)
+                common_witness (WSU x : T redux : xs)
                 else Nothing
 
 
 main :: IO()
 main = do 
     let eps = ""
-    let stack = [T (eps,eps), Exp (KS (eps,eps)), T (eps,eps)]
+    let stack = [T ("ab","b"), Exp (KS ("bab","abb")), T ("b","ab")]
     print (common_witness stack)
